@@ -13,7 +13,7 @@ const isLogged = (request, response, next) => {
     }
 }
 
-Router.post('/', async (request, response) => {
+Router.post('/', isLogged, async (request, response) => {
     const word = await WordModel.aggregate([{
         $sample: {size: 1}
     }]);
@@ -24,6 +24,8 @@ Router.post('/', async (request, response) => {
         user: request.session.user._id
     });
 
+    request.session.word = word[0].name;
+
     try {
         await game.save();
 
@@ -32,7 +34,7 @@ Router.post('/', async (request, response) => {
         }).populate('user').populate('word')
 
         return response.status(200).json({
-            "msg": game
+            "msg": word[0].name.length
         });
     } catch (error) {
         return response.status(500).json({
@@ -55,9 +57,14 @@ Router.get('/:id', async (request, response) => {
             "error": error.message
         });
     }
-})
+});
 
 Router.post('/verif', isLogged, (request, response) => {
+    console.log(request.session.word);
+
+   let search = request.session.word;
+   let guess = request.body.word
+
     // get the value from the user
 
     // ge the value searched by getting the game
@@ -66,14 +73,19 @@ Router.post('/verif', isLogged, (request, response) => {
 
     // send the result
 
+    if(search.length !== guess.length){
+        return response.status(500).json({
+            "msg": "Your 'word' value must be " + search.length
+        });
+    }
 
-    if (typeof request.body.word === 'undefined') {
+    if (typeof guess === 'undefined') {
         return response.status(500).json({
             "msg": "You have to send 'word' value"
         });
     }
 
-    if (request.body.word === search) {
+    if (guess === search) {
         return response.status(200).json({
             "result": "You find the word !"
         });
@@ -82,6 +94,6 @@ Router.post('/verif', isLogged, (request, response) => {
     return response.status(500).json({
         "result": "You don't find the word !"
     });
-})
+});
 
 module.exports = Router;
