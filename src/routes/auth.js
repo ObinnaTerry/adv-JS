@@ -51,7 +51,7 @@ Router.post('/login', async (request, response) => {
             let verif = await bcrypt.compare(password, user.password);
 
             if (verif) {
-                // request.session.user = user;
+                request.session.user = user;
 
                 const accessToken = generateAccessToken(user._id)
                 const refeshToken = generateRefreshToken(user._id)
