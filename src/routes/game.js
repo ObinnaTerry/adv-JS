@@ -85,7 +85,7 @@ Router.post('/', isLogged, async (request, response) => {
         }).populate('user').populate('word')
 
         return response.status(200).json({
-            "msg": word[0].name.length
+            "msg": "The secret word has a length of " + word[0].name.length
         });
     } catch (error) {
         return response.status(500).json({
@@ -112,7 +112,6 @@ Router.get('/:id', async (request, response) => {
 });
 
 Router.post('/verif', isLogged, async (request, response) => {
-    console.log(request.session.word);
 
     if(typeof request.session.word === 'undefined'){
         return response.status(403).json({
@@ -120,13 +119,23 @@ Router.post('/verif', isLogged, async (request, response) => {
         });
     }
 
+    if(request.session.difficulty === 0){
+        return response.status(500).json({
+            "result": "You Lost !",
+            "tries": request.session.tries
+        });
+    }
+
+    request.session.difficulty -= 1;
+
    let search = request.session.word;
    let guess = request.body.word
    request.session.tries.push(guess);
 
     if(search.length !== guess.length){
         return response.status(500).json({
-            "msg": "Your 'word' value must be " + search.length
+            "msg": "Your 'word' value must be " + search.length,
+            "attempts left": request.session.difficulty,
         });
     }
 
@@ -141,6 +150,7 @@ Router.post('/verif', isLogged, async (request, response) => {
     if (guess === search) {
         return response.status(200).json({
             "result": "You Won !",
+            "attempts left": request.session.difficulty,
             "guess": guess,
             "accuracy": result,
             "tries": request.session.tries
@@ -149,6 +159,7 @@ Router.post('/verif', isLogged, async (request, response) => {
     
     return response.status(500).json({
         "result": "You don't find the word !",
+        "attempts left": request.session.difficulty,
         "guess": guess,
         "accuracy": result,
         "tries": request.session.tries
