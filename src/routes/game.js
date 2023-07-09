@@ -13,6 +13,27 @@ const isLogged = (request, response, next) => {
     }
 }
 
+function guessWord(guess, target) {
+    if (guess.length !== target.length) {
+      throw new Error("Guess and target word must have the same length.");
+    }
+  
+    let result = "";
+  
+    for (let i = 0; i < guess.length; i++) {
+      if (guess[i] === target[i]) {
+        result += "1";
+      } else if (target.includes(guess[i])) {
+        result += "0";
+      } else {
+        result += "X";
+      }
+    }
+  
+    return result;
+  }
+  
+
 Router.post('/', isLogged, async (request, response) => {
     const word = await WordModel.aggregate([{
         $sample: {size: 1}
@@ -42,6 +63,7 @@ Router.post('/', isLogged, async (request, response) => {
         });
     }
 });
+
 
 Router.get('/:id', async (request, response) => {
     const {id} = request.params;
