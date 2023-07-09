@@ -2,6 +2,7 @@ const express = require('express');
 const WordModel = require('../models/word');
 const GameModel = require("../models/game");
 const game = require('../models/game');
+const session = require('express-session');
 
 const Router = express.Router();
 
@@ -33,9 +34,35 @@ function guessWord(guess, target) {
   
     return result;
   }
+
+  function setDifficulty(request){
+    let result = true;
+    
+    if(request.body.difficulty === 'hard'){
+        request.session.difficulty = 3;
+    }
+    else if(request.body.difficulty === 'medium'){
+        request.session.difficulty = 5;
+    }
+    else if(request.body.difficulty === 'easy'){
+        request.session.difficulty = 8;
+    }
+    else{
+        return false;
+    }
+
+    return result;
+  }
   
 
 Router.post('/', isLogged, async (request, response) => {
+
+    if (!setDifficulty(request)){
+        return response.status(400).json({
+            "msg": "You must set game difficulty before playing"
+        }); 
+    }
+
     const word = await WordModel.aggregate([{
         $sample: {size: 1}
     }]);
@@ -87,7 +114,7 @@ Router.get('/:id', async (request, response) => {
 Router.post('/verif', isLogged, async (request, response) => {
     console.log(request.session.word);
 
-    if(request.session.word === 'undefined'){
+    if(typeof request.session.word === 'undefined'){
         return response.status(403).json({
             "msg": "You must create a game before playing"
         });
@@ -96,14 +123,6 @@ Router.post('/verif', isLogged, async (request, response) => {
    let search = request.session.word;
    let guess = request.body.word
    request.session.tries.push(guess);
-
-    // get the value from the user
-
-    // ge the value searched by getting the game
-
-    // make the verification
-
-    // send the result
 
     if(search.length !== guess.length){
         return response.status(500).json({
@@ -119,21 +138,20 @@ Router.post('/verif', isLogged, async (request, response) => {
 
     let result = guessWord(guess, search);
 
-    if (result === search) {
+    if (guess === search) {
         return response.status(200).json({
-            "result": "You find the word !"
+            "result": "You Won !",
+            "guess": guess,
+            "accuracy": result,
+            "tries": request.session.tries
         });
     }
-    let wonGame = await GameModel.find({
-        _id: game._id
-    }).populate('user').populate('word')
     
-    wonGame.tries = request.session.tries;
-
     return response.status(500).json({
-        "word": guess,
-        "response": result,
-        "game": wonGame
+        "result": "You don't find the word !",
+        "guess": guess,
+        "accuracy": result,
+        "tries": request.session.tries
     });
 });
 
