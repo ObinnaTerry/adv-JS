@@ -1,6 +1,7 @@
 const express = require('express');
 const WordModel = require('../models/word');
 const GameModel = require("../models/game");
+const game = require('../models/game');
 
 const Router = express.Router();
 
@@ -46,9 +47,11 @@ Router.post('/', isLogged, async (request, response) => {
     });
 
     request.session.word = word[0].name;
+    request.session.tries = [];
 
     try {
         await game.save();
+        request.session.gameId = game._id;
 
         game = await GameModel.find({
             _id: game._id
@@ -81,11 +84,18 @@ Router.get('/:id', async (request, response) => {
     }
 });
 
-Router.post('/verif', isLogged, (request, response) => {
+Router.post('/verif', isLogged, async (request, response) => {
     console.log(request.session.word);
+
+    if(request.session.word === 'undefined'){
+        return response.status(403).json({
+            "msg": "You must create a game before playing"
+        });
+    }
 
    let search = request.session.word;
    let guess = request.body.word
+   request.session.tries.push(guess);
 
     // get the value from the user
 
@@ -114,11 +124,16 @@ Router.post('/verif', isLogged, (request, response) => {
             "result": "You find the word !"
         });
     }
+    let wonGame = await GameModel.find({
+        _id: game._id
+    }).populate('user').populate('word')
+    
+    wonGame.tries = request.session.tries;
 
     return response.status(500).json({
         "word": guess,
         "response": result,
-        game: {}
+        "game": wonGame
     });
 });
 
