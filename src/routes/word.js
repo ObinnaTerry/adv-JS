@@ -5,6 +5,8 @@ const WordModel = require('../models/word');
 
 const isLogged = (request, response, next) => {
 
+// this should be updated to use role based Authentication in production
+
   if(typeof request.session.user === 'undefined'){
     return response.status(401).json({ 'msg': 'Please log in' });
   }
