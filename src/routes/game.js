@@ -107,14 +107,18 @@ Router.post('/verif', isLogged, (request, response) => {
         });
     }
 
-    if (guess === search) {
+    let result = guessWord(guess, search);
+
+    if (result === search) {
         return response.status(200).json({
             "result": "You find the word !"
         });
     }
 
     return response.status(500).json({
-        "result": "You don't find the word !"
+        "word": guess,
+        "response": result,
+        game: {}
     });
 });
 
