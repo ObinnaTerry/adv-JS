@@ -1,6 +1,7 @@
 const express = require('express');
 const WordModel = require('../models/word');
 const GameModel = require("../models/game");
+const TryModel = require('../models/try');
 const game = require('../models/game');
 const session = require('express-session');
 
@@ -74,7 +75,7 @@ Router.post('/', isLogged, async (request, response) => {
     });
 
     request.session.word = word[0].name;
-    request.session.tries = [];
+    // request.session.tries = [];
 
     try {
         await game.save();
@@ -126,11 +127,9 @@ Router.post('/verif', isLogged, async (request, response) => {
         });
     }
 
-    request.session.difficulty -= 1;
-
    let search = request.session.word;
    let guess = request.body.word
-   request.session.tries.push(guess);
+//    request.session.tries.push(guess);
 
     if(search.length !== guess.length){
         return response.status(500).json({
@@ -145,7 +144,21 @@ Router.post('/verif', isLogged, async (request, response) => {
         });
     }
 
+    request.session.difficulty -= 1;
+
     let result = guessWord(guess, search);
+    
+    const newTry = new TryModel({
+        word: request.body.word,
+        result: result
+      });
+
+    const savedTry = await newTry.save();
+
+    let gamePlay = await GameModel.findById(request.session.gameId);
+
+    gamePlay.tries.push(savedTry._id);
+    await gamePlay.save();
 
     if (guess === search) {
         return response.status(200).json({
@@ -153,16 +166,16 @@ Router.post('/verif', isLogged, async (request, response) => {
             "attempts left": request.session.difficulty,
             "guess": guess,
             "accuracy": result,
-            "tries": request.session.tries
+            "game": await GameModel.findById(request.session.gameId).populate('tries')
         });
     }
     
     return response.status(500).json({
-        "result": "You don't find the word !",
+        "result": "Wrong guess. Try again !",
         "attempts left": request.session.difficulty,
         "guess": guess,
         "accuracy": result,
-        "tries": request.session.tries
+        "game": await GameModel.findById(request.session.gameId).populate('tries')
     });
 });
 
