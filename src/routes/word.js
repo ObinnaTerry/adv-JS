@@ -4,13 +4,16 @@ const Router = express.Router();
 const WordModel = require('../models/word');
 
 const isLogged = (request, response, next) => {
-    if (request.session.user) {
-        console.log('test');
-        next();
-    } else {
-        return response.status(401).json({'msg': "not logged !"})
-    }
-}
+
+  if(typeof request.session.user === 'undefined'){
+    return response.status(401).json({ 'msg': 'Please log in' });
+  }
+  else if (request.session.user.email === 'admin@gmail.com') {
+    next();
+  } else{
+    return response.status(401).json({ 'msg': 'Unauthorized access' });
+  }
+};
 
 Router.post('/', isLogged, async (request, response) => {
 
